@@ -1,0 +1,42 @@
+{
+    "name": "mfonte/handle-test-environment",
+    "description": "[H]andle [T]est [E]nvironment CLI tool to create and manage VirtualHosts that are compatible with github.com/mauriziofonte/win11-wsl2-ubuntu22-setup",
+    "homepage": "https://github.com/mauriziofonte/win11-wsl2-ubuntu22-setup",
+    "type": "project",
+    "license": "MIT",
+    "support": {
+        "issues": "https://github.com/mauriziofonte/win11-wsl2-ubuntu22-setup/issues",
+        "source": "https://github.com/mauriziofonte/win11-wsl2-ubuntu22-setup/scripts/hte-cli-tool/"
+    },
+    "authors": [
+        {
+            "name": "Maurizio Fonte",
+            "email": "fonte.maurizio@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1"
+    },
+    "require-dev": {
+        "laravel-zero/framework": "^10.0.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mfonte\\HteCli\\": "app/"
+        },
+        "files":[
+            "app/helpers.php"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": false
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "bin": ["builds/hte"]
+}
