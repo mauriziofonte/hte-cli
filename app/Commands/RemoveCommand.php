@@ -6,22 +6,22 @@ use Mfonte\HteCli\CommandWrapper;
 use Mfonte\HteCli\Logic\Daemons\Apache2;
 use Mfonte\HteCli\Logic\Preprocessors\Php;
 
-class DeleteCommand extends CommandWrapper
+class RemoveCommand extends CommandWrapper
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'delete
-    {--domain=null : The Domain name you want to delete}';
+    protected $signature = 'remove
+    {--domain=null : The Domain name you want to remove from the LAMP Test Environment}';
 
     /**
      * The description of the command.
      *
      * @var string
      */
-    protected $description = 'Delete a LAMP Test Environment';
+    protected $description = 'Delete a LAMP Test Environment by its Domain Name';
 
     /**
      * Execute the console command.

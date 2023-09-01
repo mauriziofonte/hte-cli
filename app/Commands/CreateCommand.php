@@ -32,7 +32,7 @@ class CreateCommand extends CommandWrapper
      *
      * @var string
      */
-    protected $description = 'Create a new LAMP Test Environment (Apache/PHP-FPM)';
+    protected $description = 'Create a new LAMP Test Environment (Apache/PHP-FPM) for a specific Domain Name';
 
     /**
      * Execute the console command.

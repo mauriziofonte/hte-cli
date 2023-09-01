@@ -41,7 +41,7 @@ Or alternatively, include a dependency for `mfonte/hte-cli` in your composer.jso
 ```json
 {
     "require-dev": {
-        "mfonte/hte-cli": "3.*"
+        "mfonte/hte-cli": "*"
     }
 }
 ```
@@ -50,6 +50,15 @@ You will then be able to run _Hte-Cli_ from the vendor bin directory:
 
 ```bash
 ./vendor/bin/hte-cli -h
+```
+
+You can then create some _Bash Aliases_ for your convenience:
+
+```bash
+alias hte="sudo /usr/bin/php8.2 /path/to/composer/vendor/bin/hte-cli"
+alias hte-create="sudo /usr/bin/php8.2 /path/to/composer/vendor/bin/hte-cli create"
+alias hte-remove="sudo /usr/bin/php8.2 /path/to/composer/vendor/bin/hte-cli remove"
+alias hte-details="sudo /usr/bin/php8.2 /path/to/composer/vendor/bin/hte-cli details"
 ```
 
 ### Git Clone
