@@ -38,5 +38,5 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "bin": ["builds/hte"]
+    "bin": ["builds/hte.phar"]
 }
