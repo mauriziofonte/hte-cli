@@ -36,7 +36,7 @@ This tool **is not intended to be used on internet-facing LAMP environments**. I
 
 This is because this tool configures _Apache_ and _PHP_ with presets that are **good only for local developing, testing and benchmarking**.
 
-For more informations, refer to [/LAMP-HARDENING.md](LAMP Stack Hardening and Linux Security Bookmarks).
+For more informations, refer to [LAMP Stack Hardening and Linux Security Bookmarks](/LAMP-HARDENING.md).
 
 ## Installation
 
