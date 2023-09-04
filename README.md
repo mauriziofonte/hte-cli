@@ -9,6 +9,12 @@
     <img title="HTE-Cli Tool" width="70%" src="https://raw.githubusercontent.com/mauriziofonte/hte-cli/main/screenshots/hte-create.png" />
 </p>
 
+<p align="center">
+  <a href="https://raw.githubusercontent.com/mauriziofonte/hte-cli/main/screenshots/hte-create.png">Screenshot of <code>hte-cli create</code></a>
+  <a href="https://raw.githubusercontent.com/mauriziofonte/hte-cli/main/screenshots/hte-remove.png">Screenshot of <code>hte-cli remove</code></a>
+  <a href="https://raw.githubusercontent.com/mauriziofonte/hte-cli/main/screenshots/hte-details.png">Screenshot of <code>hte-cli details</code></a>
+</p>
+
 ------
 
 ## What is this utility for?
