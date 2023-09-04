@@ -52,14 +52,6 @@ class CreateCommand extends CommandWrapper
         $ssl = $this->option('ssl') ? answer_to_bool($this->option('ssl')) : null;
         $forcessl = $this->option('forcessl') ? answer_to_bool($this->option('forcessl')) : null;
 
-        dd([
-            'domain' => $domain,
-            'docroot' => $docroot,
-            'phpver' => $phpver,
-            'ssl' => $ssl,
-            'forcessl' => $forcessl,
-        ]);
-
         if (empty($domain) || !validate_domain($domain)) {
             $domain = $this->keepAsking('Enter a valid local Domain Name (suggested .test TLD, as "jane.local.test")', "", function ($answer) {
                 return validate_domain($answer);
