@@ -3,6 +3,14 @@
 > **Heads Up!** This utility is intended to be used in combination with [https://github.com/mauriziofonte/win11-wsl2-ubuntu22-setup](https://github.com/mauriziofonte/win11-wsl2-ubuntu22-setup)
 > Anyway, this utility can be used in any **LAMP** stack on _Debian_ or _Ubuntu_ , with **Multi PHP-FPM** support.
 
+------
+
+<p align="center">
+    <img title="HTE-Cli Tool" height="1000" src="https://raw.githubusercontent.com/mauriziofonte/hte-cli/main/screenshots/hte-create.png" />
+</p>
+
+------
+
 ## What is this utility for?
 
 > **HTE** stands for **H**andle **T**est **E**nvironment.
@@ -122,7 +130,158 @@ The important part is to:
 
 ## Usage
 
-To-Do
+### Create a new test LAMP Env
+
+To create a new LAMP local _testing/developing_ VirtualHost, run the `HTE-Cli` tool with option `create`.
+
+In this example, the `HTE-Cli` _create_ has been _aliased_ with the `hte-create` command.
+
+```bash
+maurizio:~ $ hte-create
+[sudo] password for maurizio:
+   __ __ ______ ____      _____ __ _
+  / // //_  __// __/____ / ___// /(_)
+ / _  /  / /  / _/ /___// /__ / // /
+/_//_/  /_/  /___/      \___//_//_/
+
+[H]andle [T]est [E]nvironment Cli Tool version 1.0.5 by Maurizio Fonte
+WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/firewalled networks.
+
+ 💡 Enter a valid local Domain Name (suggested .test TLD, as "jane.local.test") []:
+ > some.localdomain.test
+
+ 💡 Enter a valid directory in the filesystem for the DocumentRoot [/home/maurizio]:
+ > /home/maurizio/projects/localdomain/public
+
+ 💡 Enter a valid PHP version for PHP-FPM (5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2) [8.2]:
+ > 8.2
+
+ 💡 Do you need HTTPS support? ["yes", "no", "y" or "n"] [y]:
+ > y
+
+ 💡 Do you want to force HTTPS? ["yes", "no", "y" or "n"] [y]:
+ > y
+
+⏳ VirtualHost configuration for some.localdomain.test created at /etc/apache2/sites-available/008-some.localdomain.test.conf
+⏳ PHP8.2-FPM configuration for some.localdomain.test created at /etc/php/8.2/fpm/pool.d/some.localdomain.test.conf
+⏳ Self-signed SSL certificate script for some.localdomain.test created at /tmp/sscert_some.localdomain.testeNRXv2
+🔐️ Executing the self-signed SSL certificate script for some.localdomain.test...
+ > Removing existing previous self-signed certs with pattern some.localdomain.test.*
+ > Generating certs for some.localdomain.test
+ > Generating RSA private key, 2048 bit long modulus
+ > Writing info to /etc/apache2/certs-selfsigned/some.localdomain.test.info
+ > Protecting the key with chmod 400 /etc/apache2/certs-selfsigned/some.localdomain.test.key
+ > Removing the temporary config file /tmp/openssl.cnf.0XLN2i
+⏳ Enabling some.localdomain.test on config 008-some.localdomain.test...
+⚡ Restarting Apache2...
+⚡ Restarting PHP8.2-FPM...
+✅ VirtualHost some.localdomain.test created successfully!
+```
+
+After the VirtualHost setup, you can easily modify your `hosts` file by binding `some.localdomain.test` to `127.0.0.1`
+
+### Delete a Test Env created via HTE-Cli
+
+To remove a LAMP local _testing/developing_ VirtualHost **previously created with HTE-Cli Tool**, run the `HTE-Cli` tool with option `remove`.
+
+In this example, the `HTE-Cli` _remove_ has been _aliased_ with the `hte-remove` command.
+
+```bash
+maurizio:~ $ hte-remove
+[sudo] password for maurizio:
+   __ __ ______ ____      _____ __ _
+  / // //_  __// __/____ / ___// /(_)
+ / _  /  / /  / _/ /___// /__ / // /
+/_//_/  /_/  /___/      \___//_//_/
+
+[H]andle [T]est [E]nvironment Cli Tool version 1.0.5 by Maurizio Fonte
+WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/firewalled networks.
+
++-------+---------------------------------+---------+
+| Index | Domain                          | Enabled |
++-------+---------------------------------+---------+
+| 1     | local.phpmyadmin.test           | 1       |
+| 2     | local.whatever.app.test         | 1       |
+| 3     | some.localdomain.test           | 1       |
++-------+---------------------------------+---------+
+
+ 💡 Enter the Domain Name you want to remove []:
+ > some.localdomain.test
+
+⏳ Deleting some.localdomain.test...
+⏳ Disabling some.localdomain.test on config 008-some.localdomain.test...
+🗑️ /etc/apache2/sites-available/008-some.localdomain.test.conf deleted
+🗑️ /etc/apache2/certs-selfsigned/some.localdomain.test.crt deleted
+🗑️ /etc/apache2/certs-selfsigned/some.localdomain.test.key deleted
+🗑️ /etc/php/8.2/fpm/pool.d/some.localdomain.test.conf deleted
+⏳ Restarting Apache2...
+⏳ Restarting PHP8.2-FPM...
+✅ VirtualHost some.localdomain.test deleted successfully!
+```
+
+### List all Test Envs created via HTE-Cli
+
+To list all LAMP local environments **previously created with HTE-Cli Tool**, run the `HTE-Cli` tool with option `details`.
+
+In this example, the `HTE-Cli` _details_ has been _aliased_ with the `hte-details` command.
+
+```bash
+maurizio:~ $ hte-details
+[sudo] password for maurizio:
+   __ __ ______ ____      _____ __ _
+  / // //_  __// __/____ / ___// /(_)
+ / _  /  / /  / _/ /___// /__ / // /
+/_//_/  /_/  /___/      \___//_//_/
+
+[H]andle [T]est [E]nvironment Cli Tool version 1.0.5 by Maurizio Fonte
+WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/firewalled networks.
+
+⚙️ VHosts Count: 3
++-------+-----------------------------------------------------------+-------------+------+-------------+---------+
+| Index | Domain / DocRoot                                          | PHP Version | SSL? | Forced SSL? | Enabled |
++-------+-----------------------------------------------------------+-------------+------+-------------+---------+
+| 1     | local.phpmyadmin.test                                     | 8.2         | 1    | 1           | 1       |
+|       |  > /home/maurizio/opt/phpmyadmin                          |             |      |             |         |
+| 2     | local.whatever.app.test                                   | 7.4         | 1    | 1           | 1       |
+|       |  > /home/maurizio/projects/old/app/public                 |             |      |             |         |
+| 3     | some.localdomain.test                                     | 8.2         | 1    | 1           | 1       |
+|       |  > /home/maurizio/projects/localdomain/public             |             |      |             |         |
++-------+-----------------------------------------------------------+-------------+------+-------------+---------+
+
+ 💡 📋 Optionally type in a domain name for the PHP-FPM details []:
+ > some.localdomain.test
+
+📋 PHP-FPM Configuration for some.localdomain.test:
+🔍 PHP-FPM Version: 8.2
+🔍 PHP-FPM Config File: /etc/php/8.2/fpm/pool.d/some.localdomain.test.conf
+[some.localdomain.test]
+user = maurizio
+group = maurizio
+listen = /var/run/php/php8.2-fpm-some.localdomain.test.sock
+listen.owner = maurizio
+listen.group = maurizio
+listen.mode = 0660
+php_admin_value[disable_functions] = apache_child_terminate,apache_get_modules,apache_getenv,apache_note,apache_setenv
+php_admin_flag[allow_url_fopen] = off
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+chdir = /
+
+catch_workers_output = yes
+request_terminate_timeout = 180s
+slowlog = /home/maurizio/projects/localdomain/public/php8.2-fpm-slow.log
+php_flag[display_errors] = off
+php_admin_value[error_log] = /home/maurizio/projects/localdomain/public/php8.2-fpm-errors.log
+php_admin_flag[log_errors] = on
+php_admin_value[post_max_size] = 128M
+php_admin_value[upload_max_filesize] = 128M
+php_admin_value[memory_limit] = 1024M
+php_value[memory_limit] = 1024M
+php_value[short_open_tag] =  On
+```
 
 ## Credits
 
