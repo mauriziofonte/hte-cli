@@ -27,6 +27,16 @@ class CommandWrapper extends Command
      */
     protected function preRun()
     {
+        // TAAG on Small Slant
+        $this->line("\e[1;97m   __ __ ______ ____      _____ __ _  \e[0m");
+        $this->line("\e[1;97m  / // //_  __// __/____ / ___// /(_) \e[0m");
+        $this->line("\e[1;97m / _  /  / /  / _/ /___// /__ / // /  \e[0m");
+        $this->line("\e[1;97m/_//_/  /_/  /___/      \___//_//_/   \e[0m");
+        $this->line("\e[1;97m                                      \e[0m");
+        $this->output->writeln("<info>[H]andle [T]est [E]nvironment Cli Tool</info> version <comment>{$this->getApplication()->getVersion()}</comment> by <fg=cyan>Maurizio Fonte</>");
+        $this->output->writeln("<bg=red;fg=white;options=bold>WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS.</> Use it only on local/firewalled networks.");
+        $this->output->writeln("");
+
         // pre-flight stuff
         $this->checkEnvironment();
         $this->checkFunctions();

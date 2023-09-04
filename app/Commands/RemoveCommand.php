@@ -14,7 +14,7 @@ class RemoveCommand extends CommandWrapper
      * @var string
      */
     protected $signature = 'remove
-    {--domain=null : The Domain name you want to remove from the LAMP Test Environment}';
+    {--domain= : The Domain name you want to remove from the LAMP Test Environment}';
 
     /**
      * The description of the command.

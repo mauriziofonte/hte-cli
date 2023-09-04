@@ -21,11 +21,11 @@ class CreateCommand extends CommandWrapper
      * @var string
      */
     protected $signature = 'create
-    {--domain=null : The Domain name you want to configure}
-    {--docroot=null : The Document Root you want to configure}
-    {--phpver=null : The PHP Version you want to use for this VirtualHost}
-    {--ssl=y : Enable SSL for this VirtualHost}
-    {--forcessl=y : Force the VirtualHost to use HTTPS}';
+    {--domain= : The Domain name you want to configure}
+    {--docroot= : The Document Root you want to configure}
+    {--phpver= : The PHP Version you want to use for this VirtualHost}
+    {--ssl= : Enable SSL for this VirtualHost}
+    {--forcessl= : Force the VirtualHost to use HTTPS}';
 
     /**
      * The description of the command.
@@ -51,6 +51,14 @@ class CreateCommand extends CommandWrapper
         $phpver = $this->option('phpver') ? $this->option('phpver') : null;
         $ssl = $this->option('ssl') ? answer_to_bool($this->option('ssl')) : null;
         $forcessl = $this->option('forcessl') ? answer_to_bool($this->option('forcessl')) : null;
+
+        dd([
+            'domain' => $domain,
+            'docroot' => $docroot,
+            'phpver' => $phpver,
+            'ssl' => $ssl,
+            'forcessl' => $forcessl,
+        ]);
 
         if (empty($domain) || !validate_domain($domain)) {
             $domain = $this->keepAsking('Enter a valid local Domain Name (suggested .test TLD, as "jane.local.test")', "", function ($answer) {

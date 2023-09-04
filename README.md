@@ -9,7 +9,20 @@
 
 It eases the process of creating _Test Environments_ on both **Local** or **Staging** environments, when using Apache on a multi PHP-FPM flavour.
 
-Basically, this utility takes care of creating a new _VirtualHost_ for **your.local.domain.tld**, working via **php-fpm**, with _http/2_ and _brotli_ compression, and configuring the _fpm pool_ by adding a new configuration file for **your.local.domain.tld**, with some useful test environment presets.
+Basically, this utility takes care of :
+
+1. creating a new _VirtualHost_ for **your.local.domain.tld**
+2. configure the _VirtualHost_ to work via **php-fpm** on the PHP version of _User's Choice_
+3. enable _http/2_ protocol and _brotli_ compression
+4. configure the PHP _fpm pool_ by adding a new specific configuration file for **your.local.domain.tld**, with some useful test environment presets.
+
+## Security
+
+This tool **is not intended to be used on internet-facing LAMP environments**. It's <ins>intended to be used on local devices</ins>, or any other Cloud VM that **is properly firewalled**.
+
+This is because this tool configures _Apache_ and _PHP_ with presets that are **good only for local developing, testing and benchmarking**.
+
+For more informations, refer to [/LAMP-HARDENING.md](LAMP Stack Hardening and Linux Security Bookmarks).
 
 ## Installation
 
@@ -26,17 +39,29 @@ wget https://github.com/mauriziofonte/hte-cli/raw/main/builds/hte-cli
 sudo mv hte-cli /usr/local/bin/hte-cli && sudo chmod +x /usr/local/bin/hte-cli
 ```
 
-### Composer
+### Global Composer Package
 
 If you use Composer, you can install _Hte-Cli_ system-wide with the following command:
 
 ```bash
-composer global require "composer require mfonte/hte-cli=*"
+composer global require "mfonte/hte-cli=*"
 ```
 
-Make sure you have the composer bin dir in your `PATH`. The default value is `~/.composer/vendor/bin/`, but you can check the value that you need to use by running `composer global config bin-dir --absolute`
+Make sure you have the composer bin dir in your `PATH`.
 
-Or alternatively, include a dependency for `mfonte/hte-cli` in your composer.json file. For example:
+The default value _should_ be `~/.composer/vendor/bin/`, but you can check the value that you need to use by running `composer global config bin-dir --absolute`
+
+The `HTE-Cli` Tool will then be available on `$(composer config -g home)/vendor/bin/hte-cli`
+
+It is suggested to modify your **bash profile** to expand your `$PATH` so that it includes the `composer/vendor/bin` directory. To do so, you can modify your `.bashrc` file by executing:
+
+```bash
+echo 'export PATH="$(composer config -g home)/vendor/bin:$PATH"' >> ~/.bashrc
+```
+
+### Composer Dependency
+
+Alternatively, include a dependency for `mfonte/hte-cli` in your composer.json file on a specific project. For example:
 
 ```json
 {
@@ -49,16 +74,16 @@ Or alternatively, include a dependency for `mfonte/hte-cli` in your composer.jso
 You will then be able to run _Hte-Cli_ from the vendor bin directory:
 
 ```bash
-./vendor/bin/hte-cli -h
+/path/to/project/dir/vendor/bin/hte-cli -h
 ```
 
 You can then create some _Bash Aliases_ for your convenience:
 
 ```bash
-alias hte="sudo /usr/bin/php8.2 /path/to/composer/vendor/bin/hte-cli"
-alias hte-create="sudo /usr/bin/php8.2 /path/to/composer/vendor/bin/hte-cli create"
-alias hte-remove="sudo /usr/bin/php8.2 /path/to/composer/vendor/bin/hte-cli remove"
-alias hte-details="sudo /usr/bin/php8.2 /path/to/composer/vendor/bin/hte-cli details"
+alias hte="sudo /usr/bin/php8.2 /path/to/project/dir/vendor/bin/hte-cli"
+alias hte-create="sudo /usr/bin/php8.2 /path/to/project/dir/vendor/bin/hte-cli create"
+alias hte-remove="sudo /usr/bin/php8.2 /path/to/project/dir/vendor/bin/hte-cli remove"
+alias hte-details="sudo /usr/bin/php8.2 /path/to/project/dir/vendor/bin/hte-cli details"
 ```
 
 ### Git Clone

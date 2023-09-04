@@ -145,9 +145,9 @@ if (!function_exists('answer_to_bool')) {
      *
      * @param mixed $value
      *
-     * @return bool
+     * @return bool|null - A boolean if the value can be converted, null otherwise.
      */
-    function answer_to_bool($value) : bool
+    function answer_to_bool($value)
     {
         if (is_bool($value)) {
             return $value;
@@ -161,11 +161,13 @@ if (!function_exists('answer_to_bool')) {
         }
         
         if (is_int($value)) {
-            if ($value === 1) {
+            if (intval($value) === 1) {
                 return true;
+            } else {
+                return false;
             }
         }
 
-        return false;
+        return null;
     }
 }
