@@ -6,7 +6,7 @@
 ------
 
 <p align="center">
-    <img title="HTE-Cli Tool" height="1000" src="https://raw.githubusercontent.com/mauriziofonte/hte-cli/main/screenshots/hte-create.png" />
+    <img title="HTE-Cli Tool" width="70%" src="https://raw.githubusercontent.com/mauriziofonte/hte-cli/main/screenshots/hte-create.png" />
 </p>
 
 ------
