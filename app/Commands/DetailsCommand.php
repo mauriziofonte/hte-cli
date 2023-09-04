@@ -45,8 +45,6 @@ class DetailsCommand extends CommandWrapper
             return $vhost['domain'];
         })->toArray();
 
-        var_dump($validDomains);
-
         $count = count($currentVhosts);
         $this->info("⚙️ VHosts Count: {$count}");
 
