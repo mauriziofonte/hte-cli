@@ -135,7 +135,7 @@ if (!function_exists('validate_domain')) {
      */
     function validate_domain(string $domain): bool
     {
-        return preg_match('/^([a-z0-9])(([a-z0-9-]{1,61})?[a-z0-9]{1})?(\.[a-z0-9](([a-z0-9-]{1,61})?[a-z0-9]{1})?)?(\.[a-zA-Z]{2,4})+$/', $domain) === 1;
+        return preg_match('/^([a-z0-9])(([a-z0-9-]{1,61})?[a-z0-9]{1})?(\.[a-z0-9](([a-z0-9-]{1,61})?[a-z0-9]{1})?)?(\.[a-zA-Z]{2,4})+$/', $domain) === 1 || filter_var($domain, FILTER_VALIDATE_IP);
     }
 }
 
