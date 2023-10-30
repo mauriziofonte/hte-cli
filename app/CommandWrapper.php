@@ -8,6 +8,7 @@ class CommandWrapper extends Command
 {
     private int $ttyLines;
     private int $ttyCols;
+    protected bool $runningAsRoot = false;
     protected string $userName;
     protected string $userGroup;
     protected string $userHome;
@@ -43,8 +44,23 @@ class CommandWrapper extends Command
         $this->setTtyParams();
         $this->checkRoot();
 
-        // get the username of the user that is running the script
-        $userInfo = posix_getpwuid($_SERVER['SUDO_UID']);
+        // get the username of the user that is running the script (if we're not root)
+        if (!$this->runningAsRoot) {
+            $userInfo = posix_getpwuid($_SERVER['SUDO_UID']);
+        } else {
+            // ask root user to provide a username: this will be the user that will own the configurations
+            $impersonateUsername = $this->keepAsking('Enter the username that will own the configurations', "", function ($answer) {
+                return !empty($answer);
+            });
+
+            $userInfo = posix_getpwnam($impersonateUsername);
+            if (empty($userInfo)) {
+                $this->criticalError("The user {$impersonateUsername} does not exist.");
+                exit(1);
+            }
+        }
+
+        // fill in the user info
         $this->userName = $userInfo['name'];
         $this->userGroup = posix_getgrgid($userInfo['gid'])['name'];
         $this->userHome = $userInfo['dir'];
@@ -199,9 +215,20 @@ class CommandWrapper extends Command
             exit(1);
         }
 
-        if (!array_key_exists('SUDO_UID', $_SERVER) || !array_key_exists('SUDO_GID', $_SERVER)) {
-            $this->criticalError("You must run this command with sudo.");
-            exit(1);
+        $uname = (array_key_exists('USER', $_SERVER)) ? $_SERVER['USER'] : null;
+        if (empty($uname)) {
+            $this->criticalError("Failed to get the current user name.");
+        }
+
+        if ($uname !== 'root') {
+            if (!array_key_exists('SUDO_UID', $_SERVER) || !array_key_exists('SUDO_GID', $_SERVER)) {
+                $this->criticalError("You must run this command with sudo.");
+                exit(1);
+            }
+        } else {
+            $this->warn("⚠️ You are running this command as root.");
+            $this->warn("⚠️ You will be asked to provide a username that will own the configurations for Apache and PHP-FPM.");
+            $this->runningAsRoot = true;
         }
     }
 }
