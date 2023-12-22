@@ -94,10 +94,10 @@ You will then be able to run _Hte-Cli_ from the vendor bin directory:
 You can then create some _Bash Aliases_ for your convenience:
 
 ```bash
-alias hte="sudo /usr/bin/php8.2 /path/to/project/dir/vendor/bin/hte-cli"
-alias hte-create="sudo /usr/bin/php8.2 /path/to/project/dir/vendor/bin/hte-cli create"
-alias hte-remove="sudo /usr/bin/php8.2 /path/to/project/dir/vendor/bin/hte-cli remove"
-alias hte-details="sudo /usr/bin/php8.2 /path/to/project/dir/vendor/bin/hte-cli details"
+alias hte="sudo /usr/bin/php8.3 /path/to/project/dir/vendor/bin/hte-cli"
+alias hte-create="sudo /usr/bin/php8.3 /path/to/project/dir/vendor/bin/hte-cli create"
+alias hte-remove="sudo /usr/bin/php8.3 /path/to/project/dir/vendor/bin/hte-cli remove"
+alias hte-details="sudo /usr/bin/php8.3 /path/to/project/dir/vendor/bin/hte-cli details"
 ```
 
 ### Git Clone
@@ -119,7 +119,7 @@ This means that you must configure your _LAMP_ stack with these commands:
 
 ```console
 # APACHE on Multi-PHP-FPM
-PHPVERS="8.2 8.1 8.0 7.4 7.3 7.2 7.1 7.0 5.6"
+PHPVERS="8.3 8.2 8.1 8.0 7.4 7.3 7.2 7.1 7.0 5.6"
 APTPACKS=$(for VER in $PHPVERS; do echo -n "libapache2-mod-php$VER php$VER "; done)
 apt install -y apache2 brotli openssl libapache2-mod-fcgid $APTPACKS
 a2dismod $(for VER in $PHPVERS; do echo -n "php$VER "; done) mpm_prefork
@@ -159,8 +159,8 @@ WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/fire
  💡 Enter a valid directory in the filesystem for the DocumentRoot [/home/maurizio]:
  > /home/maurizio/projects/localdomain/public
 
- 💡 Enter a valid PHP version for PHP-FPM (5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2) [8.2]:
- > 8.2
+ 💡 Enter a valid PHP version for PHP-FPM (5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.3) [8.3]:
+ > 8.3
 
  💡 Do you need HTTPS support? ["yes", "no", "y" or "n"] [y]:
  > y
@@ -169,7 +169,7 @@ WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/fire
  > y
 
 ⏳ VirtualHost configuration for some.localdomain.test created at /etc/apache2/sites-available/008-some.localdomain.test.conf
-⏳ PHP8.2-FPM configuration for some.localdomain.test created at /etc/php/8.2/fpm/pool.d/some.localdomain.test.conf
+⏳ PHP8.3-FPM configuration for some.localdomain.test created at /etc/php/8.3/fpm/pool.d/some.localdomain.test.conf
 ⏳ Self-signed SSL certificate script for some.localdomain.test created at /tmp/sscert_some.localdomain.testeNRXv2
 🔐️ Executing the self-signed SSL certificate script for some.localdomain.test...
  > Removing existing previous self-signed certs with pattern some.localdomain.test.*
@@ -180,7 +180,7 @@ WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/fire
  > Removing the temporary config file /tmp/openssl.cnf.0XLN2i
 ⏳ Enabling some.localdomain.test on config 008-some.localdomain.test...
 ⚡ Restarting Apache2...
-⚡ Restarting PHP8.2-FPM...
+⚡ Restarting PHP8.3-FPM...
 ✅ VirtualHost some.localdomain.test created successfully!
 ```
 
@@ -219,9 +219,9 @@ WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/fire
 🗑️ /etc/apache2/sites-available/008-some.localdomain.test.conf deleted
 🗑️ /etc/apache2/certs-selfsigned/some.localdomain.test.crt deleted
 🗑️ /etc/apache2/certs-selfsigned/some.localdomain.test.key deleted
-🗑️ /etc/php/8.2/fpm/pool.d/some.localdomain.test.conf deleted
+🗑️ /etc/php/8.3/fpm/pool.d/some.localdomain.test.conf deleted
 ⏳ Restarting Apache2...
-⏳ Restarting PHP8.2-FPM...
+⏳ Restarting PHP8.3-FPM...
 ✅ VirtualHost some.localdomain.test deleted successfully!
 ```
 
@@ -250,7 +250,7 @@ WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/fire
 |       |  > /home/maurizio/opt/phpmyadmin                          |             |      |             |         |
 | 2     | local.whatever.app.test                                   | 7.4         | 1    | 1           | 1       |
 |       |  > /home/maurizio/projects/old/app/public                 |             |      |             |         |
-| 3     | some.localdomain.test                                     | 8.2         | 1    | 1           | 1       |
+| 3     | some.localdomain.test                                     | 8.3         | 1    | 1           | 1       |
 |       |  > /home/maurizio/projects/localdomain/public             |             |      |             |         |
 +-------+-----------------------------------------------------------+-------------+------+-------------+---------+
 
@@ -258,12 +258,12 @@ WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/fire
  > some.localdomain.test
 
 📋 PHP-FPM Configuration for some.localdomain.test:
-🔍 PHP-FPM Version: 8.2
-🔍 PHP-FPM Config File: /etc/php/8.2/fpm/pool.d/some.localdomain.test.conf
+🔍 PHP-FPM Version: 8.3
+🔍 PHP-FPM Config File: /etc/php/8.3/fpm/pool.d/some.localdomain.test.conf
 [some.localdomain.test]
 user = maurizio
 group = maurizio
-listen = /var/run/php/php8.2-fpm-some.localdomain.test.sock
+listen = /var/run/php/php8.3-fpm-some.localdomain.test.sock
 listen.owner = maurizio
 listen.group = maurizio
 listen.mode = 0660
@@ -278,9 +278,9 @@ chdir = /
 
 catch_workers_output = yes
 request_terminate_timeout = 180s
-slowlog = /home/maurizio/projects/localdomain/public/php8.2-fpm-slow.log
+slowlog = /home/maurizio/projects/localdomain/public/php8.3-fpm-slow.log
 php_flag[display_errors] = off
-php_admin_value[error_log] = /home/maurizio/projects/localdomain/public/php8.2-fpm-errors.log
+php_admin_value[error_log] = /home/maurizio/projects/localdomain/public/php8.3-fpm-errors.log
 php_admin_flag[log_errors] = on
 php_admin_value[post_max_size] = 128M
 php_admin_value[upload_max_filesize] = 128M

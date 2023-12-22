@@ -134,6 +134,12 @@ class CommandWrapper extends Command
             $answer = $this->ask("💡 {$question}", $default);
             $valid = $validate($answer);
             if ($valid) {
+                if (is_string($valid)) {
+                    // the validator returned a string: this is the "transformed" answer (maybe trimmed, lowercased, etc.)
+                    return $valid;
+                }
+
+                // fallback: return the answer given by the user
                 return $answer;
             }
             $this->error("⛔ {$invalidAnswerMsg}");

@@ -127,15 +127,17 @@ if (! function_exists('dbpat')) {
 
 if (!function_exists('validate_domain')) {
     /**
-     * Validate a domain name
+     * Validate a domain name and returns the lowerercase version of it. Returns null upon failure.
      *
      * @param string $domain
      *
-     * @return bool
+     * @return ?string
      */
-    function validate_domain(string $domain): bool
+    function validate_domain(string $domain): ?string
     {
-        return preg_match('/^([a-z0-9])(([a-z0-9-]{1,61})?[a-z0-9]{1})?(\.[a-z0-9](([a-z0-9-]{1,61})?[a-z0-9]{1})?)?(\.[a-zA-Z]{2,4})+$/', $domain) === 1 || filter_var($domain, FILTER_VALIDATE_IP);
+        $valid = preg_match('/^(?!-)([a-z0-9-]*[a-z0-9]+(\.[a-z0-9-]*[a-z0-9]+)*\.[a-z]{2,})$/i', $domain) === 1 || filter_var($domain, FILTER_VALIDATE_IP);
+
+        return $valid ? mb_strtolower($domain) : null;
     }
 }
 
