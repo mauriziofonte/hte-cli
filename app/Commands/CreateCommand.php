@@ -41,6 +41,16 @@ class CreateCommand extends CommandWrapper
     {
         // pre-flight stuff: OS version, enabled functions, and root privileges
         $this->preRun();
+
+        // if the current user cannot run privileged commands, we cannot do anything
+        if (!$this->canRunPrivilegedCommands()) {
+            $this->criticalError("You need to run this command as root or with sudo privileges.");
+        }
+
+        // if the current user is root, we cannot run this command: we need a regular user
+        if ($this->userName === 'root') {
+            $this->criticalError("You need to run this command as a regular user, or as a sudoer.");
+        }
         
         // list installed PHP versions
         $phpVers = Php::getInstalledVersions();

@@ -44,6 +44,12 @@ class RemoveCommand extends CommandWrapper
             ];
         })->toArray();
 
+        if (count($currentVhosts) === 0) {
+            $this->warn('🔴 No VirtualHosts found: nothing to remove. Create a VirtualHost first.');
+            $this->line('   More info at https://github.com/mauriziofonte/hte-cli');
+            return;
+        }
+
         if (empty($domain) || !validate_domain($domain)) {
             // show the table with the current vhosts
             $this->table(['Index', 'Domain', 'Enabled'], $currentVhosts);

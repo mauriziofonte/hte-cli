@@ -41,16 +41,22 @@ class DetailsCommand extends CommandWrapper
                 'enabled' => $vhost['enabled'],
             ];
         })->toArray();
+
         $validDomains = collect(Apache2::getVhostsList())->map(function ($vhost) {
             return $vhost['domain'];
         })->toArray();
 
         $count = count($currentVhosts);
-        $this->info("⚙️ VHosts Count: {$count}");
+        if ($count === 0) {
+            $this->warn('🔴 No VirtualHosts found: nothing to get details of. Create a VirtualHost first.');
+            $this->line('   More info at https://github.com/mauriziofonte/hte-cli');
+            return;
+        }
 
+        $this->info("⚙️ VHosts Count: {$count}");
         $this->table(['Index', 'Domain / DocRoot', 'PHP Version', 'SSL?', 'Forced SSL?', 'Enabled'], $currentVhosts);
 
-        // ask for a domain to show the PHP-FPM details
+        // ask for a specific domain in the list to show its environment and PHP-FPM details
         $domain = $this->keepAsking('📋 Optionally type in a domain name for the PHP-FPM details', "", function ($answer) use ($validDomains) {
             return in_array($answer, $validDomains);
         });

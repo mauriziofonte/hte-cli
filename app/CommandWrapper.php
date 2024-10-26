@@ -8,7 +8,8 @@ class CommandWrapper extends Command
 {
     private int $ttyLines;
     private int $ttyCols;
-    protected bool $runningAsRoot = false;
+    protected bool $hasRootPermissions = false;
+    protected bool $runningAsSudo = false;
     protected string $userName;
     protected string $userGroup;
     protected string $userHome;
@@ -42,30 +43,21 @@ class CommandWrapper extends Command
         $this->checkEnvironment();
         $this->checkFunctions();
         $this->setTtyParams();
-        $this->checkRoot();
+        $this->setRunningUser();
+    }
 
-        // get the username of the user that is running the script (if we're not root)
-        if (!$this->runningAsRoot) {
-            $userInfo = posix_getpwuid($_SERVER['SUDO_UID']);
-        } else {
-            // ask root user to provide a username: this will be the user that will own the configurations
-            $impersonateUsername = $this->keepAsking('Enter the username that will own the configurations', "", function ($answer) {
-                return !empty($answer);
-            });
-
-            $userInfo = posix_getpwnam($impersonateUsername);
-            if (empty($userInfo)) {
-                $this->criticalError("The user {$impersonateUsername} does not exist.");
-                exit(1);
-            }
+    /**
+     * Checks if the current user can run privileged commands.
+     *
+     * @return bool
+     */
+    protected function canRunPrivilegedCommands() : bool
+    {
+        if ($this->hasRootPermissions) {
+            return true;
         }
 
-        // fill in the user info
-        $this->userName = $userInfo['name'];
-        $this->userGroup = posix_getgrgid($userInfo['gid'])['name'];
-        $this->userHome = $userInfo['dir'];
-        $this->userUid = $userInfo['uid'];
-        $this->userGid = $userInfo['gid'];
+        return false;
     }
 
     /**
@@ -98,7 +90,7 @@ class CommandWrapper extends Command
             $this->error($boxBound);
         }
 
-        // exit with an error code
+        // exit with an errored status code
         exit(1);
     }
 
@@ -156,8 +148,24 @@ class CommandWrapper extends Command
     {
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             // Windows
-            $this->criticalError("Windows is not supported yet.");
-            exit(1);
+            $this->criticalError("HTE-Cli does not support Windows. Please run it on a Linux or MacOS machine.");
+        }
+
+        if (!array_key_exists('SHELL', $_SERVER)) {
+            // not running from a terminal
+            $this->criticalError("HTE-Cli must be run from a terminal.");
+        }
+        
+        list($apache2, $retval) = $this->shellExecute('command -v apache2');
+        if ($retval != 0) {
+            // Apache2 is not installed: we cannot continue
+            $this->criticalError("Apache2 is not installed on this system (got {$apache2}, expected /usr/bin/apache2). HTE-Cli requires Apache2 to be installed. More info at https://github.com/mauriziofonte/hte-cli");
+        }
+
+        list($php, $retval) = $this->shellExecute('command -v php');
+        if ($retval != 0) {
+            // PHP is not installed: we cannot continue
+            $this->criticalError("PHP is not installed on this system (got {$php}, expected /usr/bin/php). HTE-Cli requires PHP to be installed. More info at https://github.com/mauriziofonte/hte-cli");
         }
     }
 
@@ -179,7 +187,6 @@ class CommandWrapper extends Command
         array_map(function ($function) {
             if (!function_exists($function)) {
                 $this->criticalError("Your PHP installation does not support {$function}() function. Check that is enabled in your php.ini config.");
-                exit(1);
             }
         }, $functions);
     }
@@ -195,7 +202,6 @@ class CommandWrapper extends Command
         list($ttyLines, $retval) = $this->shellExecute('tput lines');
         if ($retval != 0) {
             $this->criticalError("Failed to get the current terminal rows.");
-            exit(1);
         }
         $this->ttyLines = intval($ttyLines);
 
@@ -203,38 +209,56 @@ class CommandWrapper extends Command
         list($ttyCols, $retval) = $this->shellExecute('tput cols');
         if ($retval != 0) {
             $this->criticalError("Failed to get the current terminal columns.");
-            exit(1);
         }
         $this->ttyCols = intval($ttyCols);
     }
 
     /**
-     * Checks if the current running user is ROOT.
-     * If not, terminates execution with an error message.
+     * Sets global variables that tell us if we are running as root or as a sudoer.
      *
      * @return void
      */
-    private function checkRoot()
+    private function setRunningUser()
     {
-        if (posix_getuid() != 0) {
-            $this->criticalError("You must be root to run this command.");
-            exit(1);
-        }
-
         $uname = (array_key_exists('USER', $_SERVER)) ? $_SERVER['USER'] : null;
         if (empty($uname)) {
-            $this->criticalError("Failed to get the current user name.");
+            $this->criticalError("Failed to get the current user name. Make sure to run the HTE-Cli tool from a terminal.");
         }
 
-        if ($uname !== 'root') {
-            if (!array_key_exists('SUDO_UID', $_SERVER) || !array_key_exists('SUDO_GID', $_SERVER)) {
-                $this->criticalError("You must run this command with sudo.");
-                exit(1);
-            }
-        } else {
-            $this->warn("⚠️ You are running this command as root.");
-            $this->warn("⚠️ You will be asked to provide a username that will own the configurations for Apache and PHP-FPM.");
-            $this->runningAsRoot = true;
+        # Sudoer environment variables
+        # "USER" => "root"
+        # "HOME" => "/root"
+        # "SHELL" => "/bin/bash"
+        # "SUDO_COMMAND" => "/usr/bin/php hte create"
+        # "SUDO_USER" => "maurizio"
+        # "SUDO_UID" => "1000"
+        # "SUDO_GID" => "1000"
+
+        # Normal user
+        # "USER" => "maurizio"
+
+        # Root user
+        # "USER" => "root"
+
+        if ($uname === 'root' && !array_key_exists('SUDO_USER', $_SERVER)) {
+            $this->hasRootPermissions = true;
         }
+        else if ($uname === 'root' && array_key_exists('SUDO_USER', $_SERVER)) {
+            $this->hasRootPermissions = true;
+            $this->runningAsSudo = true;
+            $uname = $_SERVER['SUDO_USER'];
+        }
+
+        $userInfo = posix_getpwnam($uname);
+        if (empty($userInfo)) {
+            $this->criticalError("The user {$uname} does not exist.");
+        }
+
+        // fill in the user info
+        $this->userName = $userInfo['name'];
+        $this->userGroup = posix_getgrgid($userInfo['gid'])['name'];
+        $this->userHome = $userInfo['dir'];
+        $this->userUid = $userInfo['uid'];
+        $this->userGid = $userInfo['gid'];
     }
 }
