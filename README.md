@@ -1,7 +1,10 @@
 # Ubuntu/Debian compatible LAMP Test Environment Creator CLI Tool
 
-> **Heads Up!** This utility is intended to be used in combination with [https://github.com/mauriziofonte/win11-wsl2-ubuntu22-setup](https://github.com/mauriziofonte/win11-wsl2-ubuntu22-setup)
-> Anyway, this utility can be used in any **LAMP** stack on _Debian_ or _Ubuntu_ , with **Multi PHP-FPM** support.
+> **Heads Up!** This utility perfectly couples with the [https://github.com/mauriziofonte/win11-wsl2-ubuntu22-setup](https://github.com/mauriziofonte/win11-wsl2-ubuntu22-setup) WSL2 setup, for a complete **LAMP** stack on Windows 11.
+> 
+> However, this utility can be used in any **LAMP** stack on _Debian_ or _Ubuntu_ , with **Multi PHP-FPM** support.
+> 
+> Ah, one more thing: checking a perfect companion for **HTE-Cli**? Check out the [Gash Bash](https://github.com/mauriziofonte/gash), another creation of mine :)
 
 ------
 
@@ -115,24 +118,29 @@ Build setup is made possible via [humbug/box](https://github.com/box-project/box
 
 As said before, this utility is intended to be used on _Debian_ or _Ubuntu_ , with **Multi PHP-FPM** support.
 
-This means that you must configure your _LAMP_ stack with these commands:
+This means that you must have a _LAMP_ stack compatible with **multiple PHP versions** and configured to use _PHP-FPM_ by default. You can achieve this by following the instructions below:
 
 ```console
 # APACHE on Multi-PHP-FPM
+sudo apt-get --assume-yes --quiet install curl ca-certificates apt-transport-https software-properties-common
+LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
+LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/apache2
+sudo apt update && sudo apt upgrade
 PHPVERS="8.4 8.3 8.2 8.1 8.0 7.4 7.3 7.2 7.1 7.0 5.6"
-APTPACKS=$(for VER in $PHPVERS; do echo -n "libapache2-mod-php$VER php$VER "; done)
-apt install -y apache2 brotli openssl libapache2-mod-fcgid $APTPACKS
-a2dismod $(for VER in $PHPVERS; do echo -n "php$VER "; done) mpm_prefork
-a2enconf $(for VER in $PHPVERS; do echo -n "php$VER-fpm "; done)
-a2enmod actions fcgid alias proxy_fcgi setenvif rewrite headers ssl http2 mpm_event brotli
+PHPMODS="cli bcmath bz2 curl fpm gd gmp igbinary imagick imap intl mbstring mcrypt memcached msgpack mysql readline redis soap sqlite3 xsl zip"
+APTPACKS=$(for VER in $PHPVERS; do echo -n "libapache2-mod-php$VER php$VER "; for MOD in $PHPMODS; do if [[ "$MOD" == "mcrypt" && "${VER/./}" -ge 83 ]]; then continue; fi; echo -n "php$VER-$MOD "; done; done)
+sudo apt install -y apache2 brotli openssl libapache2-mod-fcgid $APTPACKS
+sudo a2dismod $(for VER in $PHPVERS; do echo -n "php$VER "; done) mpm_prefork
+sudo a2enconf $(for VER in $PHPVERS; do echo -n "php$VER-fpm "; done)
+sudo a2enmod actions fcgid alias proxy_fcgi setenvif rewrite headers ssl http2 mpm_event brotli
 ```
 
-The important part is to:
+The important things are:
 
 1. **disable** `mpm_prefork` module
 2. **disable** all `php**` handler modules
 3. **enable** all `php**-fpm` handler modules
-4. **enable** `fcgid`, `mpm_event`, `proxy_fcgi`, `http2`, `brotli` modules
+4. **enable** `fcgid`, `mpm_event`, `proxy_fcgi`, `alias` modules (and, obviously, `ssl` and `rewrite`) - `http2`, `brotli`, `headers`, `setenvif` are optional, but suggested.
 
 ## Usage
 
@@ -150,7 +158,7 @@ maurizio:~ $ hte-create
  / _  /  / /  / _/ /___// /__ / // /
 /_//_/  /_/  /___/      \___//_//_/
 
-[H]andle [T]est [E]nvironment Cli Tool version 1.0.5 by Maurizio Fonte
+[H]andle [T]est [E]nvironment Cli Tool version 1.0.11 by Maurizio Fonte
 WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/firewalled networks.
 
  💡 Enter a valid local Domain Name (suggested .test TLD, as "jane.local.test") []:
@@ -200,7 +208,7 @@ maurizio:~ $ hte-remove
  / _  /  / /  / _/ /___// /__ / // /
 /_//_/  /_/  /___/      \___//_//_/
 
-[H]andle [T]est [E]nvironment Cli Tool version 1.0.5 by Maurizio Fonte
+[H]andle [T]est [E]nvironment Cli Tool version 1.0.11 by Maurizio Fonte
 WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/firewalled networks.
 
 +-------+---------------------------------+---------+
