@@ -10,10 +10,11 @@ use Mfonte\HteCli\Logic\Bash\Scripts;
 class CreateCommand extends CommandWrapper
 {
     /**
-     * Note to self:
+     * Note to self
+     * A list of all UTF-8 emojis in bash or zsh
+     *
      * https://gist.github.com/BuonOmo/77b75349c517defb01ef1097e72227af
      */
-
      
     /**
      * The signature of the command.
@@ -132,28 +133,37 @@ class CreateCommand extends CommandWrapper
             }
             // execute the script
             $this->line("🔐️ Executing the self-signed SSL certificate script for {$domain}...");
-            list($output, $retval) = $this->shellExecute($tmpFile);
+            list($exitCode, $output, $error) = proc_exec($tmpFile);
             $this->warn($output);
             @unlink($tmpFile);
-            if ($retval != 0) {
+            if ($exitCode != 0) {
                 @unlink($vhostConf);
                 @unlink($fpmConf);
-                $this->criticalError("Failed to execute the self-signed SSL certificate script for {$domain}.");
+                $this->criticalError("Failed to execute the self-signed SSL certificate script for {$domain}. Stderr: {$error}");
             }
         }
 
         // enable the VirtualHost
         $vhostConfName = str_replace('.conf', '', basename($vhostConf));
         $this->line("⏳ Enabling {$domain} on config {$vhostConfName}...");
-        $this->shellExecute("a2ensite {$vhostConfName}");
+        list($exitCode, $output, $error) = proc_exec("a2ensite {$vhostConfName}");
+        if ($exitCode != 0) {
+            $this->criticalError("Failed to enable the VirtualHost for {$domain}. Stderr: {$error}");
+        }
 
         // restart Apache2
         $this->line("⚡ Restarting Apache2...");
-        $this->shellExecute('systemctl restart apache2.service');
+        list($exitCode, $output, $error) = proc_exec('systemctl restart apache2.service');
+        if ($exitCode != 0) {
+            $this->criticalError("Failed to restart Apache2. Stderr: {$error}");
+        }
 
         // restart PHP{$phpver}-FPM
         $this->line("⚡ Restarting PHP{$phpver}-FPM...");
-        $this->shellExecute("systemctl restart php{$phpver}-fpm.service");
+        list($exitCode, $output, $error) = proc_exec("systemctl restart php{$phpver}-fpm.service");
+        if ($exitCode != 0) {
+            $this->criticalError("Failed to restart PHP{$phpver}-FPM. Stderr: {$error}");
+        }
 
         // completed!
         $this->info("✅ VirtualHost {$domain} created successfully!");

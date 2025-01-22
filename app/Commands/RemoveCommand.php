@@ -77,7 +77,12 @@ class RemoveCommand extends CommandWrapper
             if ($vhostConf['enabled']) {
                 $vhostConfName = str_replace('.conf', '', basename($vhostConf['conf']));
                 $this->line("⏳ Disabling {$domain} on config {$vhostConfName}...");
-                $this->shellExecute("a2dissite {$vhostConfName}");
+                list($exitCode, $output, $error) = proc_exec("a2dissite {$vhostConfName}");
+                if ($exitCode === 0) {
+                    $this->info("✅ {$domain} disabled successfully");
+                } else {
+                    $this->warn("🔴 {$domain} could not be disabled: {$error}");
+                }
             }
         }
 
@@ -108,12 +113,22 @@ class RemoveCommand extends CommandWrapper
 
         // restart Apache2
         $this->line("⏳ Restarting Apache2...");
-        $this->shellExecute('systemctl restart apache2.service');
+        list($exitCode, $output, $error) = proc_exec('systemctl restart apache2.service');
+        if ($exitCode === 0) {
+            $this->info("✅ Apache2 restarted successfully");
+        } else {
+            $this->warn("🔴 Apache2 could not be restarted: {$error}");
+        }
 
         // restart PHP{$phpver}-FPM
         if ($phpVersion) {
             $this->line("⏳ Restarting PHP{$phpVersion}-FPM...");
-            $this->shellExecute("systemctl restart php{$phpVersion}-fpm.service");
+            list($exitCode, $output, $error) = proc_exec("systemctl restart php{$phpVersion}-fpm.service");
+            if ($exitCode === 0) {
+                $this->info("✅ PHP{$phpVersion}-FPM restarted successfully");
+            } else {
+                $this->warn("🔴 PHP{$phpVersion}-FPM could not be restarted: {$error}");
+            }
         }
 
         // completed!

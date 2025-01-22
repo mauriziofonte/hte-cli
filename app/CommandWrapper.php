@@ -6,15 +6,30 @@ use LaravelZero\Framework\Commands\Command;
 
 class CommandWrapper extends Command
 {
-    private int $ttyLines;
-    private int $ttyCols;
-    protected bool $hasRootPermissions = false;
-    protected bool $runningAsSudo = false;
-    protected string $userName;
-    protected string $userGroup;
-    protected string $userHome;
-    protected int $userUid;
-    protected int $userGid;
+    /** @var string */
+    protected $cwd;
+    /** @var string */
+    protected $commandName;
+    /** @var string */
+    protected $fullExecutablePath;
+    /** @var int */
+    private $ttyLines;
+    /** @var int */
+    private $ttyCols;
+    /** @var bool */
+    protected $hasRootPermissions = false;
+    /** @var bool */
+    protected $runningAsSudo = false;
+    /** @var string */
+    protected $userName;
+    /** @var string */
+    protected $userGroup;
+    /** @var string */
+    protected $userHome;
+    /** @var int */
+    protected $userUid;
+    /** @var int */
+    protected $userGid;
 
     public function __construct()
     {
@@ -95,22 +110,6 @@ class CommandWrapper extends Command
     }
 
     /**
-     * Executes a shell command and returns the output and the command retcode.
-     *
-     * @param string $command
-     *
-     * @return array - A tuple with the string output and the return code of the command
-     */
-    protected function shellExecute(string $command) : array
-    {
-        $output = [];
-        $returnCode = 0;
-        exec($command, $output, $returnCode);
-
-        return [implode(PHP_EOL, $output), $returnCode];
-    }
-
-    /**
      * Asks a question to the user until the answer is valid.
      *
      * @param string $question
@@ -156,16 +155,16 @@ class CommandWrapper extends Command
             $this->criticalError("HTE-Cli must be run from a terminal.");
         }
         
-        list($apache2, $retval) = $this->shellExecute('command -v apache2');
-        if ($retval != 0) {
+        list($exitCode, $output, $error) = proc_exec('command -v apache2');
+        if ($exitCode != 0) {
             // Apache2 is not installed: we cannot continue
-            $this->criticalError("Apache2 is not installed on this system (got {$apache2}, expected /usr/bin/apache2). HTE-Cli requires Apache2 to be installed. More info at https://github.com/mauriziofonte/hte-cli");
+            $this->criticalError("Apache2 is not installed on this system (got {$output}, expected /usr/bin/apache2 or /usr/sbin/apache2). HTE-Cli requires Apache2 to be installed. More info at https://github.com/mauriziofonte/hte-cli");
         }
 
-        list($php, $retval) = $this->shellExecute('command -v php');
-        if ($retval != 0) {
+        list($exitCode, $output, $error) = proc_exec('command -v php');
+        if ($exitCode != 0) {
             // PHP is not installed: we cannot continue
-            $this->criticalError("PHP is not installed on this system (got {$php}, expected /usr/bin/php). HTE-Cli requires PHP to be installed. More info at https://github.com/mauriziofonte/hte-cli");
+            $this->criticalError("PHP is not installed on this system (got {$output}, expected /usr/bin/php). HTE-Cli requires PHP to be installed. More info at https://github.com/mauriziofonte/hte-cli");
         }
     }
 
@@ -198,19 +197,15 @@ class CommandWrapper extends Command
      */
     private function setTtyParams()
     {
-        // set the current tty rows (the amount of rows in the terminal)
-        list($ttyLines, $retval) = $this->shellExecute('tput lines');
-        if ($retval != 0) {
-            $this->criticalError("Failed to get the current terminal rows.");
-        }
-        $this->ttyLines = intval($ttyLines);
+        list($exitCode, $output, $error) = proc_exec('tput lines');
+        $this->ttyLines = ($exitCode === 0) ? intval($output) : 30;
 
-        // set the current tty cols (the amount of columns in the terminal)
-        list($ttyCols, $retval) = $this->shellExecute('tput cols');
-        if ($retval != 0) {
-            $this->criticalError("Failed to get the current terminal columns.");
-        }
-        $this->ttyCols = intval($ttyCols);
+        list($exitCode, $output, $error) = proc_exec('tput cols');
+        $this->ttyCols = ($exitCode === 0) ? intval($output) : 120;
+
+        $this->cwd = dirname(realpath($_SERVER['argv'][0]));
+        $this->commandName = basename(realpath($_SERVER['argv'][0]));
+        $this->fullExecutablePath = realpath($_SERVER['PHP_SELF']);
     }
 
     /**
@@ -220,30 +215,15 @@ class CommandWrapper extends Command
      */
     private function setRunningUser()
     {
-        $uname = (array_key_exists('USER', $_SERVER)) ? $_SERVER['USER'] : null;
+        $uname = $_SERVER['USER'] ?? '';
+
         if (empty($uname)) {
-            $this->criticalError("Failed to get the current user name. Make sure to run the HTE-Cli tool from a terminal.");
+            $this->criticalError("Failed to get the current user name. Make sure to run from a terminal.");
         }
-
-        # Sudoer environment variables
-        # "USER" => "root"
-        # "HOME" => "/root"
-        # "SHELL" => "/bin/bash"
-        # "SUDO_COMMAND" => "/usr/bin/php hte create"
-        # "SUDO_USER" => "maurizio"
-        # "SUDO_UID" => "1000"
-        # "SUDO_GID" => "1000"
-
-        # Normal user
-        # "USER" => "maurizio"
-
-        # Root user
-        # "USER" => "root"
 
         if ($uname === 'root' && !array_key_exists('SUDO_USER', $_SERVER)) {
             $this->hasRootPermissions = true;
-        }
-        else if ($uname === 'root' && array_key_exists('SUDO_USER', $_SERVER)) {
+        } elseif ($uname === 'root' && array_key_exists('SUDO_USER', $_SERVER)) {
             $this->hasRootPermissions = true;
             $this->runningAsSudo = true;
             $uname = $_SERVER['SUDO_USER'];
@@ -251,14 +231,13 @@ class CommandWrapper extends Command
 
         $userInfo = posix_getpwnam($uname);
         if (empty($userInfo)) {
-            $this->criticalError("The user {$uname} does not exist.");
+            $this->criticalError("User {$uname} does not exist.");
         }
 
-        // fill in the user info
-        $this->userName = $userInfo['name'];
+        $this->userName  = $userInfo['name'];
         $this->userGroup = posix_getgrgid($userInfo['gid'])['name'];
-        $this->userHome = $userInfo['dir'];
-        $this->userUid = $userInfo['uid'];
-        $this->userGid = $userInfo['gid'];
+        $this->userHome  = $userInfo['dir'];
+        $this->userUid   = $userInfo['uid'];
+        $this->userGid   = $userInfo['gid'];
     }
 }

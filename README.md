@@ -158,7 +158,7 @@ maurizio:~ $ hte-create
  / _  /  / /  / _/ /___// /__ / // /
 /_//_/  /_/  /___/      \___//_//_/
 
-[H]andle [T]est [E]nvironment Cli Tool version 1.0.11 by Maurizio Fonte
+[H]andle [T]est [E]nvironment Cli Tool version 1.0.12 by Maurizio Fonte
 WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/firewalled networks.
 
  💡 Enter a valid local Domain Name (suggested .test TLD, as "jane.local.test") []:
@@ -208,7 +208,7 @@ maurizio:~ $ hte-remove
  / _  /  / /  / _/ /___// /__ / // /
 /_//_/  /_/  /___/      \___//_//_/
 
-[H]andle [T]est [E]nvironment Cli Tool version 1.0.11 by Maurizio Fonte
+[H]andle [T]est [E]nvironment Cli Tool version 1.0.12 by Maurizio Fonte
 WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS. Use it only on local/firewalled networks.
 
 +-------+---------------------------------+---------+

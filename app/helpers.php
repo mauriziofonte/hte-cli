@@ -173,3 +173,54 @@ if (!function_exists('answer_to_bool')) {
         return null;
     }
 }
+
+if (!function_exists('proc_exec')) {
+    /**
+     * Executes a shell command, captures output, errors, and returns the exit code.
+     * ATTENTION: the sanitization of the command is up to the caller. This function does not escape the command.
+     *
+     * This function utilizes `proc_open` to execute a shell command, allowing full access
+     * to standard input, output, and error streams. It waits for the process to complete
+     * and returns the exit code, standard output, and standard error.
+     *
+     * @param string $command The shell command to execute.
+     *
+     * @throws \RuntimeException If the process could not be created.
+     *
+     * @return array{int, string, string} An array containing:
+     *     - int: The exit code of the command.
+     *     - string: The standard output (stdout) of the command.
+     *     - string: The standard error (stderr) of the command.
+     */
+    function proc_exec(string $command) : array
+    {
+        if (!function_exists('proc_open')) {
+            throw new \RuntimeException('The proc_open function is not available on this system.');
+        }
+        
+        $pipes = [];
+        $process = proc_open($command, [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ], $pipes);
+
+        if (!is_resource($process)) {
+            throw new \RuntimeException('Could not create a valid process');
+        }
+
+        // This will prevent to program from continuing until the processes is complete
+        // Note: exitcode is created on the final loop here
+        $status = proc_get_status($process);
+        while ($status['running']) {
+            $status = proc_get_status($process);
+        }
+
+        $stdOutput = stream_get_contents($pipes[1]);
+        $stdError  = stream_get_contents($pipes[2]);
+
+        proc_close($process);
+
+        return [intval($status['exitcode']), trim($stdOutput), trim($stdError)];
+    }
+}
