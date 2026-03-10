@@ -3,204 +3,271 @@
 namespace Mfonte\HteCli;
 
 use LaravelZero\Framework\Commands\Command;
+use Mfonte\HteCli\Contracts\EnvironmentCheckerInterface;
+use Mfonte\HteCli\Contracts\UserContextInterface;
+use Mfonte\HteCli\Contracts\ProcessExecutorInterface;
+use Mfonte\HteCli\Exceptions\CriticalErrorException;
 
+/**
+ * Base command for all HTE-CLI commands.
+ *
+ * Handles pre-flight checks (OS, binaries, PHP functions, user identity),
+ * banner display, TTY detection, and error rendering. Subclasses call
+ * preRun() at the top of handle() to perform these checks.
+ *
+ * CriticalErrorException is thrown instead of exit(1) so that error
+ * flow is testable. The execute() override catches it, renders an
+ * error box, and returns exit code 1.
+ */
 class CommandWrapper extends Command
 {
-    /** @var string */
+    /** @var string Current working directory of the CLI invocation. */
     protected $cwd;
-    /** @var string */
-    protected $commandName;
-    /** @var string */
-    protected $fullExecutablePath;
-    /** @var int */
-    private $ttyLines;
-    /** @var int */
-    private $ttyCols;
-    /** @var bool */
-    protected $hasRootPermissions = false;
-    /** @var bool */
-    protected $runningAsSudo = false;
-    /** @var string */
-    protected $userName;
-    /** @var string */
-    protected $userGroup;
-    /** @var string */
-    protected $userHome;
-    /** @var int */
-    protected $userUid;
-    /** @var int */
-    protected $userGid;
 
+    /** @var string Base name of the executable (e.g., 'hte-cli'). */
+    protected $commandName;
+
+    /** @var string Full path to the running PHP script. */
+    protected $fullExecutablePath;
+
+    /** @var int Terminal height in lines. */
+    private $ttyLines = 30;
+
+    /** @var int Terminal width in columns. */
+    private $ttyCols = 120;
+
+    /** @var EnvironmentCheckerInterface|null */
+    protected $envChecker;
+
+    /** @var UserContextInterface|null */
+    protected $userContext;
+
+    /** @var ProcessExecutorInterface|null */
+    protected $process;
+
+    /**
+     * {@inheritdoc}
+     *
+     * Resolves injected services from the container if not already set.
+     */
     public function __construct()
     {
-        // construct the parent class
         parent::__construct();
     }
 
     /**
-     * The pre-flight stuff that must be done before running ANY command.
+     * Wrap command execution to catch CriticalErrorException.
      *
+     * When a subclass (or preRun) throws CriticalErrorException, the
+     * exception is caught here, an error box is rendered, and exit code 1
+     * is returned instead of terminating the process with exit().
+     *
+     * @param \Symfony\Component\Console\Input\InputInterface $input
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @return int
+     */
+    protected function execute(
+        \Symfony\Component\Console\Input\InputInterface $input,
+        \Symfony\Component\Console\Output\OutputInterface $output
+    ) {
+        try {
+            return (int) parent::execute($input, $output);
+        } catch (CriticalErrorException $e) {
+            $this->renderErrorBox($e->getMessage());
+            return 1;
+        }
+    }
+
+    /**
+     * Pre-flight checks that must run before ANY command.
+     *
+     * Displays the banner, verifies the OS, required binaries and PHP
+     * functions, detects TTY dimensions, and resolves the running user.
+     *
+     * @throws CriticalErrorException If any pre-flight check fails.
      * @return void
      */
     protected function preRun()
     {
-        // TAAG on Small Slant
-        $this->line("\e[1;97m   __ __ ______ ____      _____ __ _  \e[0m");
-        $this->line("\e[1;97m  / // //_  __// __/____ / ___// /(_) \e[0m");
-        $this->line("\e[1;97m / _  /  / /  / _/ /___// /__ / // /  \e[0m");
-        $this->line("\e[1;97m/_//_/  /_/  /___/      \___//_//_/   \e[0m");
-        $this->line("\e[1;97m                                      \e[0m");
-        $this->output->writeln("<info>[H]andle [T]est [E]nvironment Cli Tool</info> version <comment>{$this->getApplication()->getVersion()}</comment> by <fg=cyan>Maurizio Fonte</>");
-        $this->output->writeln("<bg=red;fg=white;options=bold>WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS.</> Use it only on local/firewalled networks.");
-        $this->output->writeln("");
+        // Resolve services from the container (lazy, so tests can override)
+        $this->resolveServices();
 
-        // pre-flight stuff
-        $this->checkEnvironment();
-        $this->checkFunctions();
-        $this->setTtyParams();
-        $this->setRunningUser();
+        // Banner
+        $this->showBanner();
+
+        // Environment checks
+        if (!$this->envChecker->isSupportedOs()) {
+            $this->criticalError('HTE-Cli does not support Windows. Please run it on a Linux or MacOS machine.');
+        }
+
+        if (!$this->envChecker->hasShell()) {
+            $this->criticalError('HTE-Cli must be run from a terminal.');
+        }
+
+        foreach ($this->envChecker->getRequiredBinaries() as $binary) {
+            if (!$this->envChecker->hasBinary($binary)) {
+                $this->criticalError(
+                    "{$binary} is not installed on this system. " .
+                    'HTE-Cli requires it to be installed. More info at https://github.com/mauriziofonte/hte-cli'
+                );
+            }
+        }
+
+        foreach ($this->envChecker->getRequiredFunctions() as $function) {
+            if (!$this->envChecker->hasFunction($function)) {
+                $this->criticalError(
+                    "Your PHP installation does not support {$function}() function. " .
+                    'Check that it is enabled in your php.ini config.'
+                );
+            }
+        }
+
+        // TTY dimensions
+        $this->detectTtySize();
     }
 
     /**
-     * Checks if the current user can run privileged commands.
+     * Check if the current user can run privileged commands (root or sudo).
      *
      * @return bool
      */
-    protected function canRunPrivilegedCommands() : bool
+    protected function canRunPrivilegedCommands()
     {
-        if ($this->hasRootPermissions) {
-            return true;
-        }
-
-        return false;
+        $this->resolveServices();
+        return $this->userContext->hasRootPermissions();
     }
 
     /**
-     * Prints a message to the terminal with a green background and white text.
+     * Throw CriticalErrorException to abort command execution.
      *
-     * @param string $message
-     *
+     * @param string $message Human-readable error description.
+     * @throws CriticalErrorException Always.
      * @return void
      */
     protected function criticalError(string $message)
     {
-        // wrap the error message so that it fits in the terminal (split in multiple lines)
-        $message = wordwrap($message, $this->ttyCols - 10, "\n", true);
-        $lines = explode("\n", $message);
-
-        if (count($lines) + 2 > $this->ttyLines) {
-            // simply report the error message without any formatting
-            $this->info($this->ttyLines);
-            $this->error($message);
-        } else {
-            // wrap the error message in a box with a width of $this->ttyCols, with red background and white text
-            $boxBound = str_repeat("*", $this->ttyCols);
-            
-            // print the box
-            $this->error($boxBound);
-            foreach ($lines as $line) {
-                // horizontally align the text to the center of the box
-                $this->error("*" . str_pad($line, $this->ttyCols - 2, " ", STR_PAD_BOTH) . "*");
-            }
-            $this->error($boxBound);
-        }
-
-        // exit with an errored status code
-        exit(1);
+        throw new CriticalErrorException($message);
     }
 
     /**
-     * Asks a question to the user until the answer is valid.
+     * Ask a question repeatedly until the validator returns a truthy value.
      *
-     * @param string $question
-     * @param string $default
-     * @param callable $validate
-     * @param string $invalidAnswerMsg
+     * If the validator returns a non-empty string, that string is used as the
+     * "transformed" answer (e.g., trimmed, lowercased). Otherwise the raw
+     * user input is returned.
      *
+     * @param string $question Prompt text.
+     * @param string $default Default answer.
+     * @param callable $validate Validator: receives the answer, returns truthy on success.
+     * @param string $invalidAnswerMsg Error message shown on invalid input.
      * @return string
      */
-    protected function keepAsking(string $question, string $default, callable $validate, string $invalidAnswerMsg = 'Invalid input. Please try again.') : string
+    protected function keepAsking(string $question, string $default, callable $validate, string $invalidAnswerMsg = 'Invalid input. Please try again.')
     {
         while (true) {
-            $answer = $this->ask("💡 {$question}", $default);
+            $answer = $this->ask($question, $default);
             $valid = $validate($answer);
+
             if ($valid) {
+                // Validator returned a transformed string
                 if (is_string($valid)) {
-                    // the validator returned a string: this is the "transformed" answer (maybe trimmed, lowercased, etc.)
                     return $valid;
                 }
 
-                // fallback: return the answer given by the user
                 return $answer;
             }
-            $this->error("⛔ {$invalidAnswerMsg}");
+
+            $this->error($invalidAnswerMsg);
         }
     }
 
     /**
-     * Checks if the current environment is supported.
-     * If not, terminates execution with an error message.
+     * Convenience: require root/sudo privileges or abort.
      *
+     * @throws CriticalErrorException If the user lacks privileges.
      * @return void
      */
-    private function checkEnvironment()
+    protected function requirePrivileges()
     {
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            // Windows
-            $this->criticalError("HTE-Cli does not support Windows. Please run it on a Linux or MacOS machine.");
-        }
-
-        if (!array_key_exists('SHELL', $_SERVER)) {
-            // not running from a terminal
-            $this->criticalError("HTE-Cli must be run from a terminal.");
-        }
-        
-        list($exitCode, $output, $error) = proc_exec('command -v apache2');
-        if ($exitCode != 0) {
-            // Apache2 is not installed: we cannot continue
-            $this->criticalError("Apache2 is not installed on this system (got {$output}, expected /usr/bin/apache2 or /usr/sbin/apache2). HTE-Cli requires Apache2 to be installed. More info at https://github.com/mauriziofonte/hte-cli");
-        }
-
-        list($exitCode, $output, $error) = proc_exec('command -v php');
-        if ($exitCode != 0) {
-            // PHP is not installed: we cannot continue
-            $this->criticalError("PHP is not installed on this system (got {$output}, expected /usr/bin/php). HTE-Cli requires PHP to be installed. More info at https://github.com/mauriziofonte/hte-cli");
+        if (!$this->canRunPrivilegedCommands()) {
+            $this->criticalError('You need to run this command as root or with sudo privileges.');
         }
     }
 
     /**
-     * Checks if the current environment supports some functions that we will use.
-     * If not, terminates execution with an error message.
+     * Convenience: require a non-root effective user or abort.
      *
+     * Prevents commands from running as the actual root account (as opposed
+     * to a regular user elevated via sudo).
+     *
+     * @throws CriticalErrorException If the effective user is root.
      * @return void
      */
-    private function checkFunctions()
+    protected function requireNonRootUser()
     {
-        $functions = [
-            'exec',
-            'posix_getuid',
-            'posix_getpwuid',
-            'posix_getgrgid'
-        ];
+        $this->resolveServices();
 
-        array_map(function ($function) {
-            if (!function_exists($function)) {
-                $this->criticalError("Your PHP installation does not support {$function}() function. Check that is enabled in your php.ini config.");
-            }
-        }, $functions);
+        if ($this->userContext->isRootUser()) {
+            $this->criticalError('You need to run this command as a regular user, or as a sudoer.');
+        }
     }
 
     /**
-     * Sets the tty parameters (rows and cols) for the current terminal.
+     * Display the HTE-CLI ASCII banner and version info.
      *
      * @return void
      */
-    private function setTtyParams()
+    protected function showBanner()
     {
-        list($exitCode, $output, $error) = proc_exec('tput lines');
+        $this->line("\e[1;97m   __ __ ______ ____      _____ __ _  \e[0m");
+        $this->line("\e[1;97m  / // //_  __// __/____ / ___// /(_) \e[0m");
+        $this->line("\e[1;97m / _  /  / /  / _/ /___// /__ / // /  \e[0m");
+        $this->line("\e[1;97m/_//_/  /_/  /___/      \\___//_//_/   \e[0m");
+        $this->line("\e[1;97m                                      \e[0m");
+        $this->output->writeln(
+            "<info>[H]andle [T]est [E]nvironment Cli Tool</info> version <comment>{$this->getApplication()->getVersion()}</comment> by <fg=cyan>Maurizio Fonte</>"
+        );
+        $this->output->writeln(
+            '<bg=red;fg=white;options=bold>WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS.</> Use it only on local/firewalled networks.'
+        );
+        $this->output->writeln('');
+    }
+
+    /**
+     * Resolve injected services from the Laravel container.
+     *
+     * Called lazily so that test setups can bind test doubles before
+     * the first access.
+     *
+     * @return void
+     */
+    protected function resolveServices()
+    {
+        if ($this->envChecker === null) {
+            $this->envChecker = app(EnvironmentCheckerInterface::class);
+        }
+        if ($this->userContext === null) {
+            $this->userContext = app(UserContextInterface::class);
+        }
+        if ($this->process === null) {
+            $this->process = app(ProcessExecutorInterface::class);
+        }
+    }
+
+    /**
+     * Detect terminal dimensions via tput.
+     *
+     * Falls back to sensible defaults (30 lines x 120 cols) when tput
+     * is not available or returns an error.
+     *
+     * @return void
+     */
+    private function detectTtySize()
+    {
+        list($exitCode, $output) = $this->process->execute('tput lines');
         $this->ttyLines = ($exitCode === 0) ? intval($output) : 30;
 
-        list($exitCode, $output, $error) = proc_exec('tput cols');
+        list($exitCode, $output) = $this->process->execute('tput cols');
         $this->ttyCols = ($exitCode === 0) ? intval($output) : 120;
 
         $this->cwd = dirname(realpath($_SERVER['argv'][0]));
@@ -209,35 +276,31 @@ class CommandWrapper extends Command
     }
 
     /**
-     * Sets global variables that tell us if we are running as root or as a sudoer.
+     * Render an error message inside a bordered box.
      *
+     * Word-wraps the message to fit the terminal width, then draws a box
+     * using asterisks with centred text on a red background.
+     *
+     * @param string $message
      * @return void
      */
-    private function setRunningUser()
+    private function renderErrorBox(string $message)
     {
-        $uname = $_SERVER['USER'] ?? '';
+        $message = wordwrap($message, $this->ttyCols - 10, "\n", true);
+        $lines = explode("\n", $message);
 
-        if (empty($uname)) {
-            $this->criticalError("Failed to get the current user name. Make sure to run from a terminal.");
+        if (count($lines) + 2 > $this->ttyLines) {
+            $this->error($message);
+            return;
         }
 
-        if ($uname === 'root' && !array_key_exists('SUDO_USER', $_SERVER)) {
-            $this->hasRootPermissions = true;
-        } elseif ($uname === 'root' && array_key_exists('SUDO_USER', $_SERVER)) {
-            $this->hasRootPermissions = true;
-            $this->runningAsSudo = true;
-            $uname = $_SERVER['SUDO_USER'];
+        $boxBound = str_repeat('*', $this->ttyCols);
+        $this->error($boxBound);
+
+        foreach ($lines as $line) {
+            $this->error('*' . str_pad($line, $this->ttyCols - 2, ' ', STR_PAD_BOTH) . '*');
         }
 
-        $userInfo = posix_getpwnam($uname);
-        if (empty($userInfo)) {
-            $this->criticalError("User {$uname} does not exist.");
-        }
-
-        $this->userName  = $userInfo['name'];
-        $this->userGroup = posix_getgrgid($userInfo['gid'])['name'];
-        $this->userHome  = $userInfo['dir'];
-        $this->userUid   = $userInfo['uid'];
-        $this->userGid   = $userInfo['gid'];
+        $this->error($boxBound);
     }
 }

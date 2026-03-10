@@ -15,10 +15,29 @@
         }
     ],
     "require": {
-        "php": "^7.3|^8.0"
+        "php": "^7.3|^8.0",
+        "php-school/cli-menu": "^4.3.0"
     },
     "require-dev": {
-        "laravel-zero/framework": "^8.8"
+        "laravel-zero/framework": "^8.8",
+        "phpunit/phpunit": "^9.5"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "lint": "php -l app/*.php app/**/*.php",
+        "check": [
+            "@lint",
+            "@test"
+        ],
+        "version": "cat VERSION",
+        "version:patch": "php scripts/version-bump.php patch",
+        "version:minor": "php scripts/version-bump.php minor",
+        "version:major": "php scripts/version-bump.php major",
+        "build": "php hte app:build hte-cli --build-version=$(cat VERSION)",
+        "release": [
+            "@version:patch",
+            "@build"
+        ]
     },
     "autoload": {
         "psr-4": {
@@ -27,6 +46,11 @@
         "files": [
             "app/helpers.php"
         ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
     },
     "config": {
         "preferred-install": "dist",

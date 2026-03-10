@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => 'Handle Test Environment CLI Tool',
+    'name' => 'Homelab Test Environment CLI Tool',
 
     /*
     |--------------------------------------------------------------------------
@@ -26,7 +26,7 @@ return [
     |
     */
 
-    'version' => app('git.version'),
+    'version' => trim(@file_get_contents(base_path('VERSION')) ?: '0.0.0'),
 
     /*
     |--------------------------------------------------------------------------
