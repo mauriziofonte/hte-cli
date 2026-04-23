@@ -75,16 +75,26 @@ class ApacheManager implements ApacheManagerInterface
                 $domain = str_replace('.sock', '', $matches[2]);
             }
 
-            // Detect SSL by matching <VirtualHost 127.0.0.1:443>
+            // Skip unparseable or malformed configs (missing domain or phpver).
+            // These can exist if a vhost was created with an empty domain or if
+            // the config file was manually edited in a way that breaks parsing.
+            if (empty($domain) || empty($phpver)) {
+                continue;
+            }
+
+            // Detect SSL by matching <VirtualHost 127.0.0.1:443>. Treat SSL as
+            // enabled only when both certificate and key paths are parseable;
+            // a 443 block without cert/key is a broken/incomplete config.
             $ssl = false;
             $sslCertFile = $sslKeyFile = null;
             if (preg_match('/<VirtualHost 127\.0\.0\.1:443>/', $contents)) {
-                $ssl = true;
-                if (preg_match('/SSLCertificateFile "([^"]+)"/', $contents, $matches)) {
-                    $sslCertFile = $matches[1];
-                }
-                if (preg_match('/SSLCertificateKeyFile "([^"]+)"/', $contents, $matches)) {
-                    $sslKeyFile = $matches[1];
+                if (
+                    preg_match('/SSLCertificateFile "([^"]+)"/', $contents, $certMatches) &&
+                    preg_match('/SSLCertificateKeyFile "([^"]+)"/', $contents, $keyMatches)
+                ) {
+                    $ssl = true;
+                    $sslCertFile = $certMatches[1];
+                    $sslKeyFile = $keyMatches[1];
                 }
             }
 
@@ -100,9 +110,12 @@ class ApacheManager implements ApacheManagerInterface
                 $index = intval($matches[1]);
             }
 
-            // Extract document root
+            // Extract document root. Apache supports both quoted and unquoted
+            // forms: DocumentRoot "/path with spaces" or DocumentRoot /path.
             $documentRoot = null;
-            if (preg_match('/DocumentRoot ([^\n]+)/', $contents, $matches)) {
+            if (preg_match('/DocumentRoot\s+"([^"]+)"/', $contents, $matches)) {
+                $documentRoot = $matches[1];
+            } elseif (preg_match('/DocumentRoot\s+(\S+)/', $contents, $matches)) {
                 $documentRoot = $matches[1];
             }
 

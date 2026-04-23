@@ -211,7 +211,7 @@ class CreateCommand extends CommandWrapper
             list($exitCode, $output, $error) = $this->process->execute($tmpFile);
             $this->warn($output);
             $this->fs->delete($tmpFile);
-            if ($exitCode != 0) {
+            if ($exitCode !== 0) {
                 $this->fs->delete($vhostConf);
                 $this->fs->delete($fpmConf);
                 $this->criticalError("Failed to execute the self-signed SSL certificate script for {$domain}. Stderr: {$error}");
@@ -222,21 +222,21 @@ class CreateCommand extends CommandWrapper
         $vhostConfName = str_replace('.conf', '', basename($vhostConf));
         $this->line("⏳ Enabling {$domain} on config {$vhostConfName}...");
         list($exitCode, $output, $error) = $this->services->enableSite($vhostConfName);
-        if ($exitCode != 0) {
+        if ($exitCode !== 0) {
             $this->criticalError("Failed to enable the VirtualHost for {$domain}. Stderr: {$error}");
         }
 
         // restart Apache2
         $this->line("⚡ Restarting Apache2...");
         list($exitCode, $output, $error) = $this->services->restartApache();
-        if ($exitCode != 0) {
+        if ($exitCode !== 0) {
             $this->criticalError("Failed to restart Apache2. Stderr: {$error}");
         }
 
         // restart PHP{$phpver}-FPM
         $this->line("⚡ Restarting PHP{$phpver}-FPM...");
         list($exitCode, $output, $error) = $this->services->restartPhpFpm($phpver);
-        if ($exitCode != 0) {
+        if ($exitCode !== 0) {
             $this->criticalError("Failed to restart PHP{$phpver}-FPM. Stderr: {$error}");
         }
 

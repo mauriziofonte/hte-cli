@@ -90,6 +90,13 @@ class PhpFpmManager implements PhpFpmManagerInterface
                 }
             }
 
+            // Skip pool files whose PHP version cannot be determined from the
+            // path: returning them with phpver=null would poison downstream
+            // consumers that expect a non-empty version string.
+            if ($phpver === null) {
+                continue;
+            }
+
             $contents = $this->fs->getContents($file);
             if ($contents !== false && strpos($contents, "[{$domain}]") !== false) {
                 return [
@@ -184,8 +191,14 @@ CONF;
             return PhpProfiles::DEV;
         }
 
+        // The "; Profile: <name>" marker is written by writeConf(). If it's
+        // missing or names an unknown profile (hand-edited config), fall back
+        // to DEV so downstream consumers always receive a valid profile name.
         if (preg_match('/;\s*Profile:\s*(\w+)/', $content, $matches)) {
-            return $matches[1];
+            $profile = strtolower($matches[1]);
+            if (PhpProfiles::isValid($profile)) {
+                return $profile;
+            }
         }
 
         return PhpProfiles::DEV;

@@ -624,7 +624,7 @@ class ModifyCommand extends CommandWrapper
 
                 $this->fs->delete($tmpFile);
 
-                if ($exitCode != 0) {
+                if ($exitCode !== 0) {
                     $this->warn("SSL certificate generation failed: {$error}");
                 } else {
                     $this->info("SSL certificate generated");
@@ -664,7 +664,7 @@ class ModifyCommand extends CommandWrapper
         // Restart Apache2
         $this->line("Restarting Apache2...");
         list($exitCode, , $error) = $this->services->restartApache();
-        if ($exitCode != 0) {
+        if ($exitCode !== 0) {
             $this->warn("Failed to restart Apache2: {$error}");
         }
 
@@ -674,7 +674,7 @@ class ModifyCommand extends CommandWrapper
             foreach ($versionsToRestart as $ver) {
                 $this->line("Restarting PHP{$ver}-FPM...");
                 list($exitCode, , $error) = $this->services->restartPhpFpm($ver);
-                if ($exitCode != 0) {
+                if ($exitCode !== 0) {
                     $this->warn("Failed to restart PHP{$ver}-FPM: {$error}");
                 }
             }

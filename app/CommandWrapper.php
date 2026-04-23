@@ -225,7 +225,7 @@ class CommandWrapper extends Command
         $this->line("\e[1;97m/_//_/  /_/  /___/      \\___//_//_/   \e[0m");
         $this->line("\e[1;97m                                      \e[0m");
         $this->output->writeln(
-            "<info>[H]andle [T]est [E]nvironment Cli Tool</info> version <comment>{$this->getApplication()->getVersion()}</comment> by <fg=cyan>Maurizio Fonte</>"
+            "<info>[H]omelab [T]est [E]nvironment Cli Tool</info> version <comment>{$this->getApplication()->getVersion()}</comment> by <fg=cyan>Maurizio Fonte</>"
         );
         $this->output->writeln(
             '<bg=red;fg=white;options=bold>WARNING: THIS TOOL IS *NOT* INTENDED FOR LIVE SERVERS.</> Use it only on local/firewalled networks.'

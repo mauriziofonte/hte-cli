@@ -266,6 +266,56 @@ class PhpFpmManagerTest extends TestCase
         $this->assertSame(PhpProfiles::DEV, $profile);
     }
 
+    /**
+     * @test
+     * @return void
+     */
+    public function testDetectProfileFallsBackToDevForUnknownProfileName(): void
+    {
+        // Hand-edited config with an invalid profile name must not leak out
+        // and crash PhpProfiles::getDescription downstream.
+        $content = "[weird.test]\n; Profile: custom\nuser = www-data\n";
+        $this->fs->putContents('/test/php/8.1/fpm/pool.d/weird.test.conf', $content);
+
+        $profile = $this->phpFpm->detectProfile('/test/php/8.1/fpm/pool.d/weird.test.conf');
+
+        $this->assertSame(PhpProfiles::DEV, $profile);
+    }
+
+    /**
+     * @test
+     * @return void
+     */
+    public function testDetectProfileNormalizesCase(): void
+    {
+        $content = "[mixedcase.test]\n; Profile: HARDENED\nuser = www-data\n";
+        $this->fs->putContents('/test/php/8.1/fpm/pool.d/mixedcase.test.conf', $content);
+
+        $profile = $this->phpFpm->detectProfile('/test/php/8.1/fpm/pool.d/mixedcase.test.conf');
+
+        $this->assertSame(PhpProfiles::HARDENED, $profile);
+    }
+
+    /**
+     * @test
+     * @return void
+     */
+    public function testGetConfByDomainSkipsFilesWithoutResolvablePhpVersion(): void
+    {
+        // Pool file lives outside /etc/php/<ver>/fpm/pool.d/ tree — the path
+        // segment matcher cannot extract a version. Must be skipped rather
+        // than returned with phpver=null.
+        $this->fs->makeDirectory('/test/php/custom/fpm/pool.d', 0755, true);
+        $this->fs->putContents(
+            '/test/php/custom/fpm/pool.d/orphan.test.conf',
+            "[orphan.test]\nuser = www-data\n"
+        );
+
+        $result = $this->phpFpm->getConfByDomain('orphan.test');
+
+        $this->assertNull($result);
+    }
+
     // -------------------------------------------------------------------------
     // getPotentialVersions()
     // -------------------------------------------------------------------------
